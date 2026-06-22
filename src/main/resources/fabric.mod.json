@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "caffeine_dungeons",
+  "version": "${version}",
+
+  "name": "Caffeine Dungeons",
+  "description": "QoL features for the Dungeon Dodge Minecraft Server.",
+  "authors": ["Jakacraft"],
+  "contact": {},
+
+  "license": "MIT",
+  "icon": "assets/caffeine_dungeons/icon.png",
+
+  "environment": "client",
+
+  "entrypoints": {
+    "client": [
+      "dev.caffeine.dungeons.CaffeineDungeons"
+    ],
+    "modmenu": [
+      "dev.caffeine.dungeons.config.ModMenuIntegration"
+    ]
+  },
+
+  "mixins": [
+    "caffeine_dungeons.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.18.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "cloth-config": "*"
+  },
+
+  "suggests": {
+    "modmenu": "*"
+  }
+}
