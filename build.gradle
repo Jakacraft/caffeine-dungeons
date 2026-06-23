@@ -16,8 +16,6 @@ repositories {
 }
 
 loom {
-    splitEnvironmentSourceSets()
-
     mods {
         "caffeine_dungeons" {
             sourceSet sourceSets.main
