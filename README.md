@@ -3,7 +3,8 @@
 ## Features
 
  - Hotbar Rarity Indicator
- - Item Screenshot (WIP)
+ - Item Screenshot
+ - Mod Indicator And Titles (WIP)
 
 ## License
 
