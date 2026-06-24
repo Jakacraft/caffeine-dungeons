@@ -15,11 +15,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class ScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"))
-    private void onKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
-        KeyInput input = new KeyInput(keyCode, scanCode, modifiers);
-
-        // Don't clash with the vanilla screenshot key
+    private void onKeyPressed(KeyInput input, CallbackInfoReturnable<Boolean> cir) {
         MinecraftClient client = MinecraftClient.getInstance();
+
+        // Don't clash with vanilla screenshot key
         if (client.options.screenshotKey.matchesKey(input)) return;
 
         KeyBinding binding = CaffeineDungeons.getTooltipScreenshotKey();

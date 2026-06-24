@@ -7,6 +7,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,6 +23,7 @@ public final class SupabaseService {
     private String cachedKey = "";
 
     private final Map<UUID, PlayerData> playerCache = new ConcurrentHashMap<>();
+    private final Set<UUID> fetching = ConcurrentHashMap.newKeySet();
 
     private SupabaseService() {}
 
@@ -36,7 +38,7 @@ public final class SupabaseService {
         data.hasMod   = true;
 
         c.upsert(TABLE_PLAYERS, SupabaseClient.GSON.toJson(data))
-                .thenRun(() -> CaffeineDungeons.LOGGER.info("[Supabase] Registered player: {}", data.username));
+                .thenRun(() -> CaffeineDungeons.LOGGER.info("[CDM] Registered player: {}", data.username));
     }
 
     public CompletableFuture<PlayerData> fetchPlayer(UUID uuid) {
@@ -51,8 +53,15 @@ public final class SupabaseService {
             PlayerData[] arr = SupabaseClient.GSON.fromJson(json, PlayerData[].class);
             if (arr == null || arr.length == 0) return null;
             playerCache.put(uuid, arr[0]);
+            CaffeineDungeons.LOGGER.info("[CDM] Fetched player: {}, has_mod={}", arr[0].username, arr[0].hasMod);
             return arr[0];
         });
+    }
+
+    public void ensureFetching(UUID uuid) {
+        if (playerCache.containsKey(uuid)) return;
+        if (!fetching.add(uuid)) return;
+        fetchPlayer(uuid);
     }
 
     public boolean hasMod(UUID uuid) {
@@ -72,6 +81,7 @@ public final class SupabaseService {
 
     public void clearCache() {
         playerCache.clear();
+        fetching.clear();
     }
 
     private synchronized SupabaseClient getClient() {
@@ -85,7 +95,7 @@ public final class SupabaseService {
             client    = new SupabaseClient(url, key);
             cachedUrl = url;
             cachedKey = key;
-            CaffeineDungeons.LOGGER.info("[Supabase] Client initialised for {}", url);
+            CaffeineDungeons.LOGGER.info("[CDM] Client initialised for {}", url);
         }
 
         return client;
