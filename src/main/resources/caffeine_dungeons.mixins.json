@@ -4,10 +4,11 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "InGameHudMixin",
-    "PlayerNametagMixin",
+    "HandledScreenMixin",
+    "ChatListenerMixin",
+    "ActionBarMixin",
     "ScreenMixin",
-    "TooltipBackgroundRendererMixin",
-    "accessor.EntityRenderStateMixin"
+    "TooltipBackgroundRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

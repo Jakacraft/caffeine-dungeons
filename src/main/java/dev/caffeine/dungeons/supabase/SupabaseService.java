@@ -7,7 +7,6 @@ import net.minecraft.client.network.ClientPlayerEntity;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,7 +22,6 @@ public final class SupabaseService {
     private String cachedKey = "";
 
     private final Map<UUID, PlayerData> playerCache = new ConcurrentHashMap<>();
-    private final Set<UUID> fetching = ConcurrentHashMap.newKeySet();
 
     private SupabaseService() {}
 
@@ -53,15 +51,8 @@ public final class SupabaseService {
             PlayerData[] arr = SupabaseClient.GSON.fromJson(json, PlayerData[].class);
             if (arr == null || arr.length == 0) return null;
             playerCache.put(uuid, arr[0]);
-            CaffeineDungeons.LOGGER.info("[CDM] Fetched player: {}, has_mod={}", arr[0].username, arr[0].hasMod);
             return arr[0];
         });
-    }
-
-    public void ensureFetching(UUID uuid) {
-        if (playerCache.containsKey(uuid)) return;
-        if (!fetching.add(uuid)) return;
-        fetchPlayer(uuid);
     }
 
     public boolean hasMod(UUID uuid) {
@@ -81,13 +72,12 @@ public final class SupabaseService {
 
     public void clearCache() {
         playerCache.clear();
-        fetching.clear();
     }
 
     private synchronized SupabaseClient getClient() {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        String url = config.supabaseUrl.trim();
-        String key = config.supabaseAnonKey.trim();
+        String url = config.dev.supabaseUrl.trim();
+        String key = config.dev.supabaseAnonKey.trim();
 
         if (url.isEmpty() || key.isEmpty()) return null;
 

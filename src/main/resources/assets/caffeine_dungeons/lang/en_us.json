@@ -1,0 +1,38 @@
+{
+  "_comment": "=== Config ===",
+  "text.autoconfig.caffeine_dungeons.title": "Caffeine Dungeons",
+
+  "text.autoconfig.caffeine_dungeons.option.rarityIndicatorStyle": "Rarity Indicator Style",
+  "text.autoconfig.caffeine_dungeons.option.rarityIndicatorStyle.tooltip": "The shape drawn behind hotbar and inventory items to indicate rarity.",
+
+  "text.autoconfig.caffeine_dungeons.option.rarityIndicatorAlpha": "Rarity Indicator Opacity",
+  "text.autoconfig.caffeine_dungeons.option.rarityIndicatorAlpha.tooltip": "How transparent the rarity indicator is. 10 = nearly invisible, 100 = fully opaque.",
+
+  "text.autoconfig.caffeine_dungeons.option.cooldownHudStyle": "Cooldown HUD Style",
+  "text.autoconfig.caffeine_dungeons.option.cooldownHudStyle.tooltip": "PANELS shows a decorated card with a progress bar. TEXT shows a simple list.",
+
+  "text.autoconfig.caffeine_dungeons.option.dev": "Developer Settings",
+  "text.autoconfig.caffeine_dungeons.option.dev.supabaseUrl": "Supabase URL",
+  "text.autoconfig.caffeine_dungeons.option.dev.supabaseUrl.tooltip": "The URL of your Supabase project. Only change this if you know what you are doing.",
+  "text.autoconfig.caffeine_dungeons.option.dev.supabaseAnonKey": "Supabase Anon Key",
+  "text.autoconfig.caffeine_dungeons.option.dev.supabaseAnonKey.tooltip": "The public anon key for your Supabase project. Only change this if you know what you are doing.",
+
+  "text.autoconfig.caffeine_dungeons.option.buffHudStyle": "Buff HUD Style",
+
+  "_comment2": "=== Enum values ===",
+  "text.autoconfig.caffeine_dungeons.option.rarityIndicatorStyle.CIRCLE": "Circle",
+  "text.autoconfig.caffeine_dungeons.option.rarityIndicatorStyle.SQUARE": "Square",
+  "text.autoconfig.caffeine_dungeons.option.rarityIndicatorStyle.BORDER": "Border",
+  "text.autoconfig.caffeine_dungeons.option.cooldownHudStyle.PANELS": "Panels",
+  "text.autoconfig.caffeine_dungeons.option.cooldownHudStyle.TEXT": "Text",
+  "text.autoconfig.caffeine_dungeons.option.buffHudStyle.panels": "Panels",
+  "text.autoconfig.caffeine_dungeons.option.buffHudStyle.text": "Text",
+
+  "_comment3": "=== Keybinds ===",
+  "key.caffeine_dungeons.tooltip_screenshot": "Save Tooltip Screenshot",
+  "key.caffeine_dungeons.party_screen": "Open Party Menu",
+  "key.caffeine_dungeons.open_hud_editor": "Open HUD Editor",
+
+  "_comment4": "=== Keybind category ===",
+  "key.categories.misc": "Miscellaneous"
+}
