@@ -8,7 +8,8 @@
     "ChatListenerMixin",
     "ActionBarMixin",
     "ScreenMixin",
-    "TooltipBackgroundRendererMixin"
+    "TooltipBackgroundRendererMixin",
+    "PlayerEntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

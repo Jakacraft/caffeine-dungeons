@@ -97,10 +97,12 @@ public class BuffDatabase {
                 BuffTracker tracker = BuffTracker.getInstance();
 
                 // Daily event — pick by current day of week (0=Sun … 6=Sat)
+                // DISABLED AS OF 30/06/2026
+                /*
                 if (root.has("dailyEvents")) {
                     JsonArray events = root.getAsJsonArray("dailyEvents");
-                    int dayIndex = java.time.LocalDate.now()
-                            .getDayOfWeek().getValue() % 7;          // Mon=1..Sun=7→0
+                    int dayIndex = java.time.LocalDate.now(java.time.ZoneId.of("America/New_York"))
+                            .getDayOfWeek().getValue() % 7;
                     if (dayIndex < events.size()) {
                         JsonObject de = events.get(dayIndex).getAsJsonObject();
                         tracker.setDailyEvent(BuffEntry.permanent(
@@ -109,6 +111,7 @@ public class BuffDatabase {
                         ));
                     }
                 }
+                 */
 
                 // Boosters
                 if (root.has("boosters")) {

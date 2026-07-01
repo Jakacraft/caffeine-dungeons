@@ -33,6 +33,9 @@ public class CooldownHudRenderer {
         pos.getX(MARGIN);
         pos.getY(MARGIN);
 
+        // Which half of the screen the panel sits on — flips accent + layout
+        boolean rightSide = pos.x > client.getWindow().getScaledWidth() / 2;
+
         List<CooldownEntry> entries = CooldownTracker.INSTANCE.getEntries();
 
         // Always register so the editor can find this HUD even when empty
@@ -53,25 +56,25 @@ public class CooldownHudRenderer {
         if (config.cooldownHudStyle == CaffeineConfig.CooldownHudStyle.TEXT) {
             renderText(context, entries, tr);
         } else {
-            renderPanels(context, entries, tr, now);
+            renderPanels(context, entries, tr, now, rightSide);
         }
 
         matrices.popMatrix();
     }
 
     private static void renderPanels(DrawContext context, List<CooldownEntry> entries,
-                                     TextRenderer tr, long now) {
+                                     TextRenderer tr, long now, boolean rightSide) {
         for (int i = 0; i < entries.size(); i++) {
             CooldownEntry entry = entries.get(i);
             float alpha = entry.getFadeAlpha();
             if (alpha <= 0f) continue;
 
-            // Slide-in from left
+            // Slide-in from the edge nearest the panel's actual screen side
             float slideProgress = Math.min(1f, (now - entry.getStartTime()) / (float) SLIDE_MS);
             float easedSlide = 1f - (1f - slideProgress) * (1f - slideProgress);
-            int xOff = (int) ((1f - easedSlide) * -(PANEL_W + MARGIN + 4));
+            int slideDir = rightSide ? 1 : -1;
+            int xOff = (int) ((1f - easedSlide) * slideDir * (PANEL_W + MARGIN + 4));
 
-            // Coordinates are relative to matrix origin (pos.x, pos.y)
             int px = MARGIN + xOff;
             int py = MARGIN + i * (ENTRY_H + ENTRY_GAP);
 
@@ -82,18 +85,22 @@ public class CooldownHudRenderer {
             int bgA = (int)(alpha * 0xA0) & 0xFF;
             context.fill(px, py, px + PANEL_W, py + ENTRY_H, (bgA << 24) | 0x000000);
 
-            // Left accent strip
-            context.fill(px, py, px + ACCENT_W, py + ENTRY_H, (a << 24) | abilColor);
+            // Accent strip — left edge normally, right edge when mirrored
+            if (rightSide) {
+                context.fill(px + PANEL_W - ACCENT_W, py, px + PANEL_W, py + ENTRY_H, (a << 24) | abilColor);
+            } else {
+                context.fill(px, py, px + ACCENT_W, py + ENTRY_H, (a << 24) | abilColor);
+            }
 
-            // Ability name
-            int textX = px + ACCENT_W + PAD;
+            // Ability name — padding shifts away from whichever side has the accent
+            int textX = rightSide ? px + PAD : px + ACCENT_W + PAD;
             int textY = py + PAD;
             context.drawTextWithShadow(tr,
                     Text.literal(entry.abilityName),
                     textX, textY,
                     (a << 24) | 0xFFFFFF);
 
-            // Timer — right-aligned, in ability color
+            // Timer — right-aligned, shifted left when accent is on the right
             float remaining = entry.getRemainingSeconds();
             String timerStr = remaining > 0.05f
                     ? String.format("%.1fs", remaining)
@@ -102,9 +109,12 @@ public class CooldownHudRenderer {
                     ? (a << 24) | abilColor
                     : (a << 24) | 0x55FF55;
             int timerW = tr.getWidth(timerStr);
+            int timerX = rightSide
+                    ? px + PANEL_W - ACCENT_W - timerW - PAD
+                    : px + PANEL_W - timerW - PAD;
             context.drawTextWithShadow(tr,
                     Text.literal(timerStr),
-                    px + PANEL_W - timerW - PAD, textY,
+                    timerX, textY,
                     timerColor);
 
             // Progress bar track

@@ -13,10 +13,9 @@ import java.util.List;
 public class BuffHudRenderer {
 
     // Layout
-    public static final int PANEL_W = 164;
+    private static final int MIN_PANEL_W = 80;
     private static final int PADDING  = 4;
     private static final int MARGIN   = 4;
-    private static final int ACCENT_W = 3;
     private static final int LINE_H   = 11;
     private static final int BAR_H    = 3;
     private static final int TIMED_H  = LINE_H + 2 + BAR_H;
@@ -32,20 +31,21 @@ public class BuffHudRenderer {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
         BuffTracker tracker   = BuffTracker.getInstance();
         MinecraftClient mc    = MinecraftClient.getInstance();
+        TextRenderer tr       = mc.textRenderer;
         HudPosition pos       = config.buffHudPos;
 
         // Resolve default position (top-right) on first render
-        int defaultX = mc.getWindow().getScaledWidth() - PANEL_W - MARGIN;
+        int defaultX = mc.getWindow().getScaledWidth() - MIN_PANEL_W - MARGIN;
         pos.getX(defaultX);
         pos.getY(MARGIN);
-
-        // Always register with a minimum height so the editor can always find this HUD
-        GuiEditManager.register("Buff HUD", pos, PANEL_W, 20);
 
         BuffEntry       daily     = tracker.getDailyEvent();
         BuffEntry       tempEvent = tracker.getTempEvent();
         List<BuffEntry> boosters  = tracker.getBoosters();
         List<BuffEntry> tempBuffs = tracker.getTempBuffs();
+
+        // Always register so the editor can always find this HUD
+        GuiEditManager.register("Buff HUD", pos, MIN_PANEL_W, 20);
 
         if (daily == null && tempEvent == null && boosters.isEmpty() && tempBuffs.isEmpty()) return;
 
@@ -53,10 +53,10 @@ public class BuffHudRenderer {
         boolean hasMid = !boosters.isEmpty();
         boolean hasBot = !tempBuffs.isEmpty();
 
+        int panelW   = computeContentWidth(tr, daily, tempEvent, boosters, tempBuffs);
         int contentH = computeHeight(daily, tempEvent, boosters, tempBuffs, hasTop, hasMid, hasBot);
 
-        // Update editor registration with actual content height
-        GuiEditManager.register("Buff HUD", pos, PANEL_W, contentH);
+        GuiEditManager.register("Buff HUD", pos, panelW, contentH);
 
         var matrices = context.getMatrices();
         matrices.pushMatrix();
@@ -67,36 +67,28 @@ public class BuffHudRenderer {
             renderText(context, daily, tempEvent, boosters, tempBuffs);
         } else {
             renderPanel(context, daily, tempEvent, boosters, tempBuffs,
-                    contentH, hasTop, hasMid, hasBot);
+                    contentH, panelW, hasTop, hasMid, hasBot);
         }
 
         matrices.popMatrix();
     }
 
     // -------------------------------------------------------------------------
-    // PANEL style  (all coordinates relative to matrix origin = pos.x, pos.y)
+    // Width / height computation
     // -------------------------------------------------------------------------
 
-    private static void renderPanel(DrawContext ctx,
-                                    BuffEntry daily, BuffEntry tempEvent,
-                                    List<BuffEntry> boosters, List<BuffEntry> tempBuffs,
-                                    int panelH, boolean hasTop, boolean hasMid, boolean hasBot) {
-        TextRenderer tr = MinecraftClient.getInstance().textRenderer;
-
-        ctx.fill(0, 0, PANEL_W, panelH, PANEL_BG);
-
-        int cursor = PADDING;
-
-        if (daily     != null) cursor = drawPermanent(ctx, tr, daily,     cursor);
-        if (tempEvent != null) cursor = drawPermanent(ctx, tr, tempEvent,  cursor);
-
-        if (hasTop && (hasMid || hasBot)) { drawSep(ctx, cursor); cursor += SEP_H; }
-
-        for (BuffEntry b : boosters)  cursor = drawPermanent(ctx, tr, b, cursor);
-
-        if (hasMid && hasBot) { drawSep(ctx, cursor); cursor += SEP_H; }
-
-        for (BuffEntry b : tempBuffs) cursor = drawTimed(ctx, tr, b, cursor);
+    private static int computeContentWidth(TextRenderer tr,
+                                           BuffEntry daily, BuffEntry tempEvent,
+                                           List<BuffEntry> boosters, List<BuffEntry> tempBuffs) {
+        int maxW = MIN_PANEL_W - PADDING * 2;
+        if (daily     != null) maxW = Math.max(maxW, tr.getWidth(daily.label()));
+        if (tempEvent != null) maxW = Math.max(maxW, tr.getWidth(tempEvent.label()));
+        for (BuffEntry b : boosters)  maxW = Math.max(maxW, tr.getWidth(b.label()));
+        for (BuffEntry b : tempBuffs) {
+            int w = tr.getWidth(b.label()) + 4 + tr.getWidth(b.timerText());
+            maxW = Math.max(maxW, w);
+        }
+        return maxW + PADDING * 2;
     }
 
     private static int computeHeight(BuffEntry daily, BuffEntry tempEvent,
@@ -112,28 +104,52 @@ public class BuffHudRenderer {
         return h;
     }
 
-    private static int drawPermanent(DrawContext ctx, TextRenderer tr, BuffEntry entry, int y) {
+    // -------------------------------------------------------------------------
+    // PANEL style  (all coordinates relative to matrix origin = pos.x, pos.y)
+    // -------------------------------------------------------------------------
+
+    private static void renderPanel(DrawContext ctx,
+                                    BuffEntry daily, BuffEntry tempEvent,
+                                    List<BuffEntry> boosters, List<BuffEntry> tempBuffs,
+                                    int panelH, int panelW, boolean hasTop, boolean hasMid, boolean hasBot) {
+        TextRenderer tr = MinecraftClient.getInstance().textRenderer;
+
+        ctx.fill(0, 0, panelW, panelH, PANEL_BG);
+
+        int cursor = PADDING;
+
+        if (daily     != null) cursor = drawPermanent(ctx, tr, daily,     cursor, panelW);
+        if (tempEvent != null) cursor = drawPermanent(ctx, tr, tempEvent, cursor, panelW);
+
+        if (hasTop && (hasMid || hasBot)) { drawSep(ctx, cursor, panelW); cursor += SEP_H; }
+
+        for (BuffEntry b : boosters)  cursor = drawPermanent(ctx, tr, b, cursor, panelW);
+
+        if (hasMid && hasBot) { drawSep(ctx, cursor, panelW); cursor += SEP_H; }
+
+        for (BuffEntry b : tempBuffs) cursor = drawTimed(ctx, tr, b, cursor, panelW);
+    }
+
+    private static int drawPermanent(DrawContext ctx, TextRenderer tr, BuffEntry entry, int y, int panelW) {
         int color = parseHex(entry.colorHex());
-        String label = truncate(tr, entry.label(), PANEL_W - ACCENT_W - PADDING * 2);
-        ctx.drawTextWithShadow(tr, label, ACCENT_W + PADDING, y + 1, color);
+        String label = truncate(tr, entry.label(), panelW - PADDING * 2);
+        ctx.drawTextWithShadow(tr, label, PADDING, y + 1, color);
         return y + LINE_H;
     }
 
-    private static int drawTimed(DrawContext ctx, TextRenderer tr, BuffEntry entry, int y) {
+    private static int drawTimed(DrawContext ctx, TextRenderer tr, BuffEntry entry, int y, int panelW) {
         int color    = parseHex(entry.colorHex());
         String timer = entry.timerText();
         int timerW   = tr.getWidth(timer);
 
-        ctx.fill(0, y, ACCENT_W, y + TIMED_H - 2, color);
-
-        int labelMaxW = PANEL_W - ACCENT_W - PADDING * 2 - timerW - 4;
+        int labelMaxW = panelW - PADDING * 2 - timerW - 4;
         String label  = truncate(tr, entry.label(), labelMaxW);
-        ctx.drawTextWithShadow(tr, label, ACCENT_W + PADDING, y + 1, color);
-        ctx.drawTextWithShadow(tr, timer, PANEL_W - PADDING - timerW, y + 1, TIMER_COL);
+        ctx.drawTextWithShadow(tr, label, PADDING, y + 1, color);
+        ctx.drawTextWithShadow(tr, timer, panelW - PADDING - timerW, y + 1, TIMER_COL);
 
-        int barX = ACCENT_W + PADDING;
+        int barX = PADDING;
         int barY = y + LINE_H + 2;
-        int barW = PANEL_W - ACCENT_W - PADDING * 2;
+        int barW = panelW - PADDING * 2;
         int filled = Math.max(0, (int)(barW * entry.progress()));
         ctx.fill(barX, barY, barX + barW, barY + BAR_H, BAR_BG);
         ctx.fill(barX, barY, barX + filled, barY + BAR_H, color);
@@ -141,8 +157,8 @@ public class BuffHudRenderer {
         return y + TIMED_H;
     }
 
-    private static void drawSep(DrawContext ctx, int y) {
-        ctx.fill(PADDING, y + 3, PANEL_W - PADDING, y + 4, SEP_COLOR);
+    private static void drawSep(DrawContext ctx, int y, int panelW) {
+        ctx.fill(PADDING, y + 3, panelW - PADDING, y + 4, SEP_COLOR);
     }
 
     // -------------------------------------------------------------------------

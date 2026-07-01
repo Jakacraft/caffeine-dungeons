@@ -1,5 +1,6 @@
 package dev.caffeine.dungeons.supabase;
 
+import com.google.gson.JsonObject;
 import dev.caffeine.dungeons.CaffeineDungeons;
 import dev.caffeine.dungeons.config.CaffeineConfig;
 import me.shedaniel.autoconfig.AutoConfig;
@@ -25,9 +26,13 @@ public final class SupabaseService {
 
     private SupabaseService() {}
 
-    public void registerLocalPlayer(ClientPlayerEntity player) {
+    /**
+     * Upserts the local player row, returning a future so callers can chain
+     * work that requires the row to exist (e.g. the realtime auth_uid PATCH).
+     */
+    public CompletableFuture<Void> registerLocalPlayer(ClientPlayerEntity player) {
         SupabaseClient c = getClient();
-        if (c == null) return;
+        if (c == null) return CompletableFuture.completedFuture(null);
 
         PlayerData data = new PlayerData();
         data.uuid     = player.getUuidAsString();
@@ -35,8 +40,22 @@ public final class SupabaseService {
         data.lastSeen = Instant.now().toString();
         data.hasMod   = true;
 
-        c.upsert(TABLE_PLAYERS, SupabaseClient.GSON.toJson(data))
+        return c.upsert(TABLE_PLAYERS, SupabaseClient.GSON.toJson(data))
                 .thenRun(() -> CaffeineDungeons.LOGGER.info("[CDM] Registered player: {}", data.username));
+    }
+
+    /**
+     * Writes the Supabase Auth anonymous user ID onto the player row.
+     * Called by RealtimeAuth after a successful sign-in so RLS policies
+     * can match the realtime connection to this Minecraft player.
+     */
+    public CompletableFuture<Void> linkAuthUid(UUID uuid, String authUid) {
+        SupabaseClient c = getClient();
+        if (c == null) return CompletableFuture.completedFuture(null);
+        JsonObject body = new JsonObject();
+        body.addProperty("auth_uid", authUid);
+        return c.patch(TABLE_PLAYERS, "uuid=eq." + uuid, body.toString())
+                .thenRun(() -> {});
     }
 
     public CompletableFuture<PlayerData> fetchPlayer(UUID uuid) {

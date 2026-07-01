@@ -19,6 +19,9 @@
     ],
     "modmenu": [
       "dev.caffeine.dungeons.config.ModMenuIntegration"
+    ],
+    "preLaunch": [
+      "dev.caffeine.dungeons.CaffeinePreLaunch"
     ]
   },
 

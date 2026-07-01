@@ -23,10 +23,15 @@ public class CaffeineConfig implements ConfigData {
     @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
     public BuffHudStyle buffHudStyle = BuffHudStyle.PANELS;
 
+    @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
+    public AccessoryHudStyle accessoryHudStyle = AccessoryHudStyle.PANELS;
+
     @ConfigEntry.Gui.Excluded
     public HudPosition buffHudPos = new HudPosition();
     @ConfigEntry.Gui.Excluded
     public HudPosition cooldownHudPos = new HudPosition();
+    @ConfigEntry.Gui.Excluded
+    public HudPosition accessoryHudPos = new HudPosition();
 
     @ConfigEntry.Gui.CollapsibleObject(startExpanded = false)
     public DevSettings dev = new DevSettings();
@@ -36,6 +41,8 @@ public class CaffeineConfig implements ConfigData {
     public enum CooldownHudStyle { PANELS, TEXT }
 
     public enum BuffHudStyle { PANELS, TEXT }
+
+    public enum AccessoryHudStyle { PANELS, TEXT }
 
     public static class DevSettings implements ConfigData {
         @ConfigEntry.Gui.Tooltip

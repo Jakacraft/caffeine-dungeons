@@ -11,6 +11,9 @@
   "text.autoconfig.caffeine_dungeons.option.cooldownHudStyle": "Cooldown HUD Style",
   "text.autoconfig.caffeine_dungeons.option.cooldownHudStyle.tooltip": "PANELS shows a decorated card with a progress bar. TEXT shows a simple list.",
 
+  "text.autoconfig.caffeine_dungeons.option.accessoryHudStyle": "Accessory HUD Style",
+  "text.autoconfig.caffeine_dungeons.option.accessoryHudStyle.tooltip": "PANELS shows a decorated card with a progress bar. TEXT shows a simple list.",
+
   "text.autoconfig.caffeine_dungeons.option.dev": "Developer Settings",
   "text.autoconfig.caffeine_dungeons.option.dev.supabaseUrl": "Supabase URL",
   "text.autoconfig.caffeine_dungeons.option.dev.supabaseUrl.tooltip": "The URL of your Supabase project. Only change this if you know what you are doing.",
@@ -27,6 +30,8 @@
   "text.autoconfig.caffeine_dungeons.option.cooldownHudStyle.TEXT": "Text",
   "text.autoconfig.caffeine_dungeons.option.buffHudStyle.panels": "Panels",
   "text.autoconfig.caffeine_dungeons.option.buffHudStyle.text": "Text",
+  "text.autoconfig.caffeine_dungeons.option.accessoryHudStyle.panels": "Panels",
+  "text.autoconfig.caffeine_dungeons.option.accessoryHudStyle.text": "Text",
 
   "_comment3": "=== Keybinds ===",
   "key.caffeine_dungeons.tooltip_screenshot": "Save Tooltip Screenshot",
