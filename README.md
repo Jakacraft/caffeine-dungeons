@@ -1,11 +1,25 @@
-# Caffeine Dungeons
+# [CDM] Caffeine Dungeons Mod
 
 ## Features
 
- - Hotbar Rarity Indicator
+ - Rarity Colors
+ - Missing Accessories
+ - Better Party Menu
+ - Cooldown Hud Display
+ - Buffs Hud Display
+ - Custom Titles
  - Item Screenshot
- - Mod Indicator And Titles (WIP)
+
+## Versions & Dependancies
+
+### Required
+ - Minecraft: 1.21.11
+ - Fabric: 0.18.0+
+ - Fabric Api: 0.141.4+1.21.11
+ - Cloth Config: 21.11.153
+### Recommended
+ - Mod Menu: 17.0.0
 
 ## License
 
-This template is available under the MIT license.
+This mod is available under the MIT license.
