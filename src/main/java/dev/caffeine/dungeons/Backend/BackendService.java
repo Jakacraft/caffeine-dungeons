@@ -1,5 +1,6 @@
-package dev.caffeine.dungeons.supabase;
+package dev.caffeine.dungeons.Backend;
 
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import dev.caffeine.dungeons.CaffeineDungeons;
 import dev.caffeine.dungeons.config.CaffeineConfig;
@@ -12,26 +13,22 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class SupabaseService {
+public final class BackendService {
 
-    public static final SupabaseService INSTANCE = new SupabaseService();
+    public static final BackendService INSTANCE = new BackendService();
 
     private static final String TABLE_PLAYERS = "players";
 
-    private SupabaseClient client;
+    private BackendClient client;
     private String cachedUrl = "";
     private String cachedKey = "";
 
     private final Map<UUID, PlayerData> playerCache = new ConcurrentHashMap<>();
 
-    private SupabaseService() {}
+    private BackendService() {}
 
-    /**
-     * Upserts the local player row, returning a future so callers can chain
-     * work that requires the row to exist (e.g. the realtime auth_uid PATCH).
-     */
     public CompletableFuture<Void> registerLocalPlayer(ClientPlayerEntity player) {
-        SupabaseClient c = getClient();
+        BackendClient c = getClient();
         if (c == null) return CompletableFuture.completedFuture(null);
 
         PlayerData data = new PlayerData();
@@ -40,17 +37,12 @@ public final class SupabaseService {
         data.lastSeen = Instant.now().toString();
         data.hasMod   = true;
 
-        return c.upsert(TABLE_PLAYERS, SupabaseClient.GSON.toJson(data))
+        return c.upsert(TABLE_PLAYERS, BackendClient.GSON.toJson(data))
                 .thenRun(() -> CaffeineDungeons.LOGGER.info("[CDM] Registered player: {}", data.username));
     }
 
-    /**
-     * Writes the Supabase Auth anonymous user ID onto the player row.
-     * Called by RealtimeAuth after a successful sign-in so RLS policies
-     * can match the realtime connection to this Minecraft player.
-     */
     public CompletableFuture<Void> linkAuthUid(UUID uuid, String authUid) {
-        SupabaseClient c = getClient();
+        BackendClient c = getClient();
         if (c == null) return CompletableFuture.completedFuture(null);
         JsonObject body = new JsonObject();
         body.addProperty("auth_uid", authUid);
@@ -59,7 +51,7 @@ public final class SupabaseService {
     }
 
     public CompletableFuture<PlayerData> fetchPlayer(UUID uuid) {
-        SupabaseClient c = getClient();
+        BackendClient c = getClient();
         if (c == null) return CompletableFuture.completedFuture(null);
 
         PlayerData cached = playerCache.get(uuid);
@@ -67,7 +59,7 @@ public final class SupabaseService {
 
         return c.get(TABLE_PLAYERS, "uuid=eq." + uuid + "&select=*").thenApply(json -> {
             if (json == null) return null;
-            PlayerData[] arr = SupabaseClient.GSON.fromJson(json, PlayerData[].class);
+            PlayerData[] arr = BackendClient.GSON.fromJson(json, PlayerData[].class);
             if (arr == null || arr.length == 0) return null;
             playerCache.put(uuid, arr[0]);
             return arr[0];
@@ -79,10 +71,23 @@ public final class SupabaseService {
         return data != null && data.hasMod;
     }
 
-    public void pushOverlevels(UUID uuid, PlayerData overlevels) {
-        SupabaseClient c = getClient();
+    public CompletableFuture<String> fetchActiveTitles() {
+        BackendClient c = getClient();
+        if (c == null) return CompletableFuture.completedFuture(null);
+        return c.get(TABLE_PLAYERS, "select=uuid,active_title_id");
+    }
+
+    /** Sets (or clears, if titleId is null) the local player's active title selection. */
+    public void setActiveTitle(UUID uuid, String titleId) {
+        BackendClient c = getClient();
         if (c == null) return;
-        c.patch(TABLE_PLAYERS, "uuid=eq." + uuid, SupabaseClient.GSON.toJson(overlevels));
+        JsonObject body = new JsonObject();
+        if (titleId == null) {
+            body.add("active_title_id", JsonNull.INSTANCE);
+        } else {
+            body.addProperty("active_title_id", titleId);
+        }
+        c.patch(TABLE_PLAYERS, "uuid=eq." + uuid, body.toString());
     }
 
     public void invalidateCache(UUID uuid) {
@@ -93,15 +98,15 @@ public final class SupabaseService {
         playerCache.clear();
     }
 
-    private synchronized SupabaseClient getClient() {
+    private synchronized BackendClient getClient() {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        String url = config.dev.supabaseUrl.trim();
-        String key = config.dev.supabaseAnonKey.trim();
+        String url = config.dev.backendUrl.trim();
+        String key = config.dev.backendAdminKey.trim();
 
         if (url.isEmpty() || key.isEmpty()) return null;
 
         if (!url.equals(cachedUrl) || !key.equals(cachedKey)) {
-            client    = new SupabaseClient(url, key);
+            client    = new BackendClient(url, key);
             cachedUrl = url;
             cachedKey = key;
             CaffeineDungeons.LOGGER.info("[CDM] Client initialised for {}", url);

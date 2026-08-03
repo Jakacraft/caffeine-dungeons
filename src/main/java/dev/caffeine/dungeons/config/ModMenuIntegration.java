@@ -6,7 +6,9 @@ import me.shedaniel.autoconfig.AutoConfig;
 
 public class ModMenuIntegration implements ModMenuApi {
 
+
     @Override
+    @SuppressWarnings({"removal"})
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
         return parent -> AutoConfig.getConfigScreen(CaffeineConfig.class, parent).get();
     }

@@ -32,7 +32,7 @@ public class BuffHudRenderer {
         BuffTracker tracker   = BuffTracker.getInstance();
         MinecraftClient mc    = MinecraftClient.getInstance();
         TextRenderer tr       = mc.textRenderer;
-        HudPosition pos       = config.buffHudPos;
+        HudPosition pos       = config.buffHud.pos;
 
         // Resolve default position (top-right) on first render
         int defaultX = mc.getWindow().getScaledWidth() - MIN_PANEL_W - MARGIN;
@@ -63,7 +63,7 @@ public class BuffHudRenderer {
         matrices.translate(pos.x, pos.y);
         matrices.scale(pos.scale, pos.scale);
 
-        if (config.buffHudStyle == CaffeineConfig.BuffHudStyle.TEXT) {
+        if (config.buffHud.style == CaffeineConfig.BuffHudStyle.TEXT) {
             renderText(context, daily, tempEvent, boosters, tempBuffs);
         } else {
             renderPanel(context, daily, tempEvent, boosters, tempBuffs,

@@ -3,7 +3,7 @@
   "id": "caffeine_dungeons",
   "version": "${version}",
 
-  "name": "Caffeine Dungeons",
+  "name": "Caffeine Dungeons Mod",
   "description": "QoL features for the Dungeon Dodge Minecraft Server.",
   "authors": ["Jakacraft"],
   "contact": {},
@@ -19,9 +19,6 @@
     ],
     "modmenu": [
       "dev.caffeine.dungeons.config.ModMenuIntegration"
-    ],
-    "preLaunch": [
-      "dev.caffeine.dungeons.CaffeinePreLaunch"
     ]
   },
 

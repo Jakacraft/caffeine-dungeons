@@ -36,7 +36,7 @@ public class HandledScreenMixin {
                                       CallbackInfoReturnable<Boolean> cir) {
         if (!AccessoryTracker.getInstance().isInBagSession()) return;
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        HudPosition pos = config.accessoryHudPos;
+        HudPosition pos = config.accessoryHud.pos;
         if (AccessoryHudRenderer.isMouseOver(pos, (int) mouseX, (int) mouseY)) {
             AccessoryHudRenderer.scroll((int)(-vertAmount * 11));
             cir.setReturnValue(true);

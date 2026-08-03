@@ -1,5 +1,7 @@
 package dev.caffeine.dungeons.hud;
 
+import dev.caffeine.dungeons.config.CaffeineConfig;
+import me.shedaniel.autoconfig.AutoConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -30,7 +32,6 @@ public class GuiPositionEditor extends Screen {
                 MinecraftClient.getInstance().getWindow().getHandle(),
                 GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
 
-        // Just pressed — pick up an entry
         if (isMouseDown && !wasMouseDown) {
             for (GuiEditManager.HudEntry entry : GuiEditManager.getEntries()) {
                 HudPosition pos = entry.position();
@@ -46,12 +47,13 @@ public class GuiPositionEditor extends Screen {
             }
         }
 
-        // Released — drop grab
-        if (!isMouseDown) grabbedEntry = null;
+        if (!isMouseDown && grabbedEntry != null) {
+            grabbedEntry = null;
+            saveConfig();
+        }
 
         wasMouseDown = isMouseDown;
 
-        // Move grabbed entry
         if (grabbedEntry != null) {
             HudPosition pos = grabbedEntry.position();
             int w = Math.max(10, (int)(grabbedEntry.width()  * pos.scale));
@@ -60,10 +62,8 @@ public class GuiPositionEditor extends Screen {
             pos.y = Math.max(0, Math.min(this.height - h, mouseY - grabOffsetY));
         }
 
-        // Dark overlay
         context.fill(0, 0, this.width, this.height, 0x90000000);
 
-        // Instructions
         String hint = "§eDrag §fto move  •  §eScroll §fto scale  •  §eEsc §fto close";
         context.drawCenteredTextWithShadow(this.textRenderer, hint, this.width / 2, 6, 0xFFFFFFFF);
 
@@ -78,18 +78,15 @@ public class GuiPositionEditor extends Screen {
             boolean grabbed = entry == grabbedEntry;
             boolean hovered = !grabbed && isOver(mouseX, mouseY, pos, w, h);
 
-            // Fill
             context.fill(pos.x, pos.y, pos.x + w, pos.y + h,
                     grabbed ? BOX_GRAB_COLOR : hovered ? BOX_HOVER_COLOR : BOX_COLOR);
 
-            // 1px border
             int bc = grabbed ? BORDER_GRAB : hovered ? BORDER_HOVER : BORDER_COLOR;
             context.fill(pos.x,       pos.y,       pos.x + w,   pos.y + 1,   bc);
             context.fill(pos.x,       pos.y + h-1, pos.x + w,   pos.y + h,   bc);
             context.fill(pos.x,       pos.y,       pos.x + 1,   pos.y + h,   bc);
             context.fill(pos.x + w-1, pos.y,       pos.x + w,   pos.y + h,   bc);
 
-            // Label centred in box
             String label = grabbed
                     ? entry.label() + " §8(" + pos.x + ", " + pos.y + ")"
                     : entry.label() + " §8[" + String.format("%.1f", pos.scale) + "x]";
@@ -114,6 +111,7 @@ public class GuiPositionEditor extends Screen {
             if (isOver((int)mouseX, (int)mouseY, pos, w, h)) {
                 pos.scale = Math.max(0.5f, Math.min(3.0f,
                         pos.scale + (float)(vertAmount * 0.1)));
+                saveConfig();
                 return true;
             }
         }
@@ -121,7 +119,17 @@ public class GuiPositionEditor extends Screen {
     }
 
     @Override
+    public void removed() {
+        saveConfig();
+        super.removed();
+    }
+
+    @Override
     public boolean shouldPause() { return false; }
+
+    private static void saveConfig() {
+        AutoConfig.getConfigHolder(CaffeineConfig.class).save();
+    }
 
     private static boolean isOver(int mx, int my, HudPosition pos, int w, int h) {
         return mx >= pos.x && mx <= pos.x + w && my >= pos.y && my <= pos.y + h;

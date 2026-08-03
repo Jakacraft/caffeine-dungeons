@@ -1,8 +1,10 @@
 package dev.caffeine.dungeons.mixin;
 
+import dev.caffeine.dungeons.config.CaffeineConfig;
 import dev.caffeine.dungeons.title.ChromaUtil;
 import dev.caffeine.dungeons.title.TitleEntry;
 import dev.caffeine.dungeons.title.TitleRegistry;
+import me.shedaniel.autoconfig.AutoConfig;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.entity.PlayerEntityRenderer;
@@ -20,7 +22,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(PlayerEntityRenderer.class)
 public class PlayerEntityRendererMixin {
 
-    // 9px font height × 1.15 line spacing × 0.025 world-units-per-pixel
     private static final float LABEL_LINE_HEIGHT = 9.0F * 1.15F * 0.025F;
 
     @Inject(method = "renderLabelIfPresent", at = @At("TAIL"))
@@ -38,7 +39,9 @@ public class PlayerEntityRendererMixin {
         var entity = mc.world.getEntityById(state.id);
         if (!(entity instanceof PlayerEntity player)) return;
 
-        TitleEntry titleEntry = TitleRegistry.getInstance().getTitle(player.getUuid());
+        // Was getTitle(uuid) — titles are now a granted list per player with
+        // one currently-active selection, synced via TitleDatabase's poll.
+        TitleEntry titleEntry = TitleRegistry.getInstance().getActiveTitle(player.getUuid());
         if (titleEntry == null) return;
 
         int rgb = titleEntry.isChroma()

@@ -66,17 +66,40 @@ public class AdminCommandRegistry {
 
                                         // /cdm admin remote sound <soundId> <player>
                                         .then(ClientCommandManager.literal("remote")
-                                                .then(ClientCommandManager.literal("sound")
-                                                        .then(ClientCommandManager.argument("soundId", StringArgumentType.string())
-                                                                .then(ClientCommandManager.argument("player", StringArgumentType.string())
+                                                .then(ClientCommandManager.literal("customsound")
+                                                        .then(ClientCommandManager.argument("player", StringArgumentType.string())
+                                                                .then(ClientCommandManager.argument("filename", StringArgumentType.greedyString())
                                                                         .executes(ctx -> {
                                                                             if (!checkAdmin()) return 0;
-                                                                            String soundId = StringArgumentType.getString(ctx, "soundId");
                                                                             String playerName = StringArgumentType.getString(ctx, "player");
+                                                                            String filename = StringArgumentType.getString(ctx, "filename");
                                                                             RealtimeSender.resolveUuidByUsername(playerName)
                                                                                     .thenAccept(maybeUuid ->
-                                                                                            // resolveUuidByUsername runs on the HTTP thread —
-                                                                                            // hop back to the game thread for feedback + send.
+                                                                                            MinecraftClient.getInstance().execute(() -> {
+                                                                                                if (maybeUuid.isEmpty()) {
+                                                                                                    feedback("§cPlayer not found: §f" + playerName);
+                                                                                                    return;
+                                                                                                }
+                                                                                                JsonObject data = new JsonObject();
+                                                                                                data.addProperty("filename", filename);
+                                                                                                RealtimeSender.sendToPlayer(maybeUuid.get(), "remote_custom_sound", data);
+                                                                                                feedback("§aCustom sound §f" + filename + " §asent to §f" + playerName);
+                                                                                            })
+                                                                                    );
+                                                                            return 1;
+                                                                        })
+                                                                )
+                                                        )
+                                                )
+                                                .then(ClientCommandManager.literal("sound")
+                                                        .then(ClientCommandManager.argument("player", StringArgumentType.string())
+                                                                .then(ClientCommandManager.argument("soundId", StringArgumentType.greedyString())
+                                                                        .executes(ctx -> {
+                                                                            if (!checkAdmin()) return 0;
+                                                                            String playerName = StringArgumentType.getString(ctx, "player");
+                                                                            String soundId = StringArgumentType.getString(ctx, "soundId");
+                                                                            RealtimeSender.resolveUuidByUsername(playerName)
+                                                                                    .thenAccept(maybeUuid ->
                                                                                             MinecraftClient.getInstance().execute(() -> {
                                                                                                 if (maybeUuid.isEmpty()) {
                                                                                                     feedback("§cPlayer not found: §f" + playerName);
@@ -85,7 +108,7 @@ public class AdminCommandRegistry {
                                                                                                 JsonObject data = new JsonObject();
                                                                                                 data.addProperty("soundId", soundId);
                                                                                                 RealtimeSender.sendToPlayer(maybeUuid.get(), "troll_sound", data);
-                                                                                                feedback("§aTroll sound §f" + soundId + " §asent to §f" + playerName);
+                                                                                                feedback("§aRemote sound §f" + soundId + " §asent to §f" + playerName);
                                                                                             })
                                                                                     );
                                                                             return 1;

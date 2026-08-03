@@ -30,8 +30,6 @@ public class BuffDatabase {
     // -------------------------------------------------------------------------
     // Public API
     // -------------------------------------------------------------------------
-
-    /** Fetch GitHub buffs + active Supabase server event. Call on world JOIN. */
     public void fetchAll() {
         fetchGitHubBuffs();
         fetchServerEvent();
@@ -40,7 +38,7 @@ public class BuffDatabase {
     /** Push a new active server event (admin only — enforced in command layer). */
     public void pushServerEvent(String text) {
         CaffeineConfig cfg = cfg();
-        if (!hasSupabase(cfg)) return;
+        if (!hasBackend(cfg)) return;
 
         // 1. Deactivate all current active events
         patch(cfg, "/rest/v1/server_events?active=eq.true",
@@ -67,7 +65,7 @@ public class BuffDatabase {
     /** Set all active server events to inactive. */
     public void clearServerEvent() {
         CaffeineConfig cfg = cfg();
-        if (!hasSupabase(cfg)) return;
+        if (!hasBackend(cfg)) return;
         patch(cfg, "/rest/v1/server_events?active=eq.true", jsonOf("active", false))
                 .thenAccept(r -> {
                     if (r.statusCode() == 200 || r.statusCode() == 204) {
@@ -133,7 +131,7 @@ public class BuffDatabase {
 
     private void fetchServerEvent() {
         CaffeineConfig cfg = cfg();
-        if (!hasSupabase(cfg)) return;
+        if (!hasBackend(cfg)) return;
 
         get(cfg, "/rest/v1/server_events?active=eq.true&order=created_at.desc&limit=1")
                 .thenAccept(r -> {
@@ -165,9 +163,9 @@ public class BuffDatabase {
     get(CaffeineConfig cfg, String path) {
         return http.sendAsync(
                 HttpRequest.newBuilder()
-                        .uri(URI.create(cfg.dev.supabaseUrl + path))
-                        .header("apikey",        cfg.dev.supabaseAnonKey)
-                        .header("Authorization", "Bearer " + cfg.dev.supabaseAnonKey)
+                        .uri(URI.create(cfg.dev.backendUrl + path))
+                        .header("apikey",        cfg.dev.backendAdminKey)
+                        .header("Authorization", "Bearer " + cfg.dev.backendAdminKey)
                         .header("Accept",        "application/json")
                         .GET().build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -177,9 +175,9 @@ public class BuffDatabase {
     post(CaffeineConfig cfg, String path, JsonObject body) {
         return http.sendAsync(
                 HttpRequest.newBuilder()
-                        .uri(URI.create(cfg.dev.supabaseUrl + path))
-                        .header("apikey",         cfg.dev.supabaseAnonKey)
-                        .header("Authorization",  "Bearer " + cfg.dev.supabaseAnonKey)
+                        .uri(URI.create(cfg.dev.backendUrl + path))
+                        .header("apikey",         cfg.dev.backendAdminKey)
+                        .header("Authorization",  "Bearer " + cfg.dev.backendAdminKey)
                         .header("Content-Type",   "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body.toString())).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -189,9 +187,9 @@ public class BuffDatabase {
     patch(CaffeineConfig cfg, String path, JsonObject body) {
         return http.sendAsync(
                 HttpRequest.newBuilder()
-                        .uri(URI.create(cfg.dev.supabaseUrl + path))
-                        .header("apikey",         cfg.dev.supabaseAnonKey)
-                        .header("Authorization",  "Bearer " + cfg.dev.supabaseAnonKey)
+                        .uri(URI.create(cfg.dev.backendUrl + path))
+                        .header("apikey",         cfg.dev.backendAdminKey)
+                        .header("Authorization",  "Bearer " + cfg.dev.backendAdminKey)
                         .header("Content-Type",   "application/json")
                         .method("PATCH", HttpRequest.BodyPublishers.ofString(body.toString())).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -205,8 +203,8 @@ public class BuffDatabase {
         return AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
     }
 
-    private static boolean hasSupabase(CaffeineConfig cfg) {
-        return cfg.dev.supabaseUrl != null && !cfg.dev.supabaseUrl.isBlank();
+    private static boolean hasBackend(CaffeineConfig cfg) {
+        return cfg.dev.backendUrl != null && !cfg.dev.backendUrl.isBlank();
     }
 
     private static JsonObject jsonOf(String key, boolean value) {

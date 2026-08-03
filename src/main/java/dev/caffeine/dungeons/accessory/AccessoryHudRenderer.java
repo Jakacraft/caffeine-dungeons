@@ -58,7 +58,7 @@ public class AccessoryHudRenderer {
      */
     public static boolean handleClick(double screenMouseX, double screenMouseY) {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        HudPosition pos = config.accessoryHudPos;
+        HudPosition pos = config.accessoryHud.pos;
         if (pos.scale <= 0) return false;
 
         double localX = (screenMouseX - pos.x) / pos.scale;
@@ -84,7 +84,7 @@ public class AccessoryHudRenderer {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
         MinecraftClient mc    = MinecraftClient.getInstance();
         TextRenderer tr       = mc.textRenderer;
-        HudPosition pos       = config.accessoryHudPos;
+        HudPosition pos       = config.accessoryHud.pos;
         int screenH           = mc.getWindow().getScaledHeight();
 
         pos.getX(MARGIN);
@@ -96,7 +96,7 @@ public class AccessoryHudRenderer {
         // Always register with editor
         GuiEditManager.register("Missing Accessories", pos, MIN_PANEL_W, 60);
 
-        if (config.accessoryHudStyle == CaffeineConfig.AccessoryHudStyle.TEXT) {
+        if (config.accessoryHud.style == CaffeineConfig.AccessoryHudStyle.TEXT) {
             var matrices = context.getMatrices();
             matrices.pushMatrix();
             matrices.translate(pos.x, pos.y);

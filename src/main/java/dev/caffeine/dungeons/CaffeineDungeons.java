@@ -4,7 +4,6 @@ import dev.caffeine.dungeons.ability.AbilityDatabase;
 import dev.caffeine.dungeons.ability.CooldownHudRenderer;
 import dev.caffeine.dungeons.ability.CooldownTracker;
 import dev.caffeine.dungeons.accessory.AccessoryDatabase;
-import dev.caffeine.dungeons.accessory.AccessoryHudRenderer;
 import dev.caffeine.dungeons.accessory.AccessoryTracker;
 import dev.caffeine.dungeons.buff.BuffDatabase;
 import dev.caffeine.dungeons.buff.BuffHudRenderer;
@@ -13,12 +12,16 @@ import dev.caffeine.dungeons.command.AdminCommandRegistry;
 import dev.caffeine.dungeons.command.CommandRegistry;
 import dev.caffeine.dungeons.config.CaffeineConfig;
 import dev.caffeine.dungeons.hud.GuiEditManager;
-import dev.caffeine.dungeons.realtime.RealtimeAuth;
+import dev.caffeine.dungeons.pickup.PickupHudRenderer;
+import dev.caffeine.dungeons.pickup.PickupTracker;
 import dev.caffeine.dungeons.realtime.RealtimeClient;
+import dev.caffeine.dungeons.realtime.RemoteCustomSoundHandler;
 import dev.caffeine.dungeons.realtime.RemoteSoundHandler;
 import dev.caffeine.dungeons.screen.PartyChatListener;
 import dev.caffeine.dungeons.screen.PartyScreen;
-import dev.caffeine.dungeons.supabase.SupabaseService;
+import dev.caffeine.dungeons.Backend.BackendService;
+import dev.caffeine.dungeons.skillxp.SkillXpHudRenderer;
+import dev.caffeine.dungeons.skillxp.SkillXpTracker;
 import dev.caffeine.dungeons.title.TitleDatabase;
 import dev.caffeine.dungeons.title.TitleRegistry;
 import dev.caffeine.dungeons.tooltip.TooltipScreenshot;
@@ -32,7 +35,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -59,6 +61,7 @@ public class CaffeineDungeons implements ClientModInitializer {
         CommandRegistry.register();
         AdminCommandRegistry.register();
         RemoteSoundHandler.init();
+        RemoteCustomSoundHandler.init();
 
         tooltipScreenshotKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.caffeine_dungeons.tooltip_screenshot",
@@ -84,6 +87,8 @@ public class CaffeineDungeons implements ClientModInitializer {
         ClientTickEvents.START_CLIENT_TICK.register(client -> TooltipTracker.clear());
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
+
             while (tooltipScreenshotKey.wasPressed()) {
                 TooltipScreenshot.capture();
             }
@@ -98,58 +103,69 @@ public class CaffeineDungeons implements ClientModInitializer {
             if (hudEditorKey.wasPressed()) {
                 GuiEditManager.open();
             }
-            MinecraftClient mc = MinecraftClient.getInstance();
-            if (mc.currentScreen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> screen) {
-                String title = screen.getTitle().getString()
-                        .replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
-                if (title.contains("Accessory Bag")) {
-                    AccessoryTracker.getInstance().tickInBag();
-                    for (var slot : screen.getScreenHandler().slots) {
-                        net.minecraft.item.ItemStack stack = slot.getStack();
-                        if (!stack.isEmpty()) {
-                            String name = stack.getName().getString()
-                                    .replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
-                            if (!name.isBlank()) AccessoryTracker.getInstance().markFound(name);
+
+            if (config.accessoryHud.enabled) {
+                if (client.currentScreen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?> screen) {
+                    String title = screen.getTitle().getString()
+                            .replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+                    if (title.contains("Accessory Bag")) {
+                        AccessoryTracker.getInstance().tickInBag();
+                        for (var slot : screen.getScreenHandler().slots) {
+                            net.minecraft.item.ItemStack stack = slot.getStack();
+                            if (!stack.isEmpty()) {
+                                String name = stack.getName().getString()
+                                        .replaceAll("§[0-9a-fk-orA-FK-OR]", "").trim();
+                                if (!name.isBlank()) AccessoryTracker.getInstance().markFound(name);
+                            }
                         }
+                    } else {
+                        AccessoryTracker.getInstance().tickOutOfBag();
                     }
                 } else {
                     AccessoryTracker.getInstance().tickOutOfBag();
                 }
-            } else {
-                AccessoryTracker.getInstance().tickOutOfBag();
             }
-            CooldownTracker.INSTANCE.tick();
-            BuffTracker.getInstance().tick();
+
+            if (config.cooldownHud.enabled) CooldownTracker.INSTANCE.tick();
+            if (config.buffHud.enabled) BuffTracker.getInstance().tick();
+            if (config.pickupHud.enabled) PickupTracker.INSTANCE.tick(client.player);
+            if (config.skillXpHud.enabled) SkillXpTracker.INSTANCE.tick();
         });
 
-        HudRenderCallback.EVENT.register((context, tickCounter) -> CooldownHudRenderer.render(context));
-        HudRenderCallback.EVENT.register((context, tickCounter) -> BuffHudRenderer.render(context));
+        HudRenderCallback.EVENT.register((context, tickCounter) -> {
+            CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
+            if (config.cooldownHud.enabled) CooldownHudRenderer.render(context);
+            if (config.buffHud.enabled) BuffHudRenderer.render(context);
+            if (config.pickupHud.enabled) PickupHudRenderer.render(context);
+            if (config.skillXpHud.enabled) SkillXpHudRenderer.render(context);
+        });
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+            CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
             if (client.player != null) {
                 UUID playerUuid = client.player.getUuid();
-                SupabaseService.INSTANCE.registerLocalPlayer(client.player)
-                        .thenCompose(v -> RealtimeAuth.getInstance().ensureSignedIn(playerUuid))
-                        .thenRun(() -> RealtimeClient.getInstance().connect(playerUuid))
-                        .exceptionally(err -> {
-                            LOGGER.error("[CDM] Realtime setup failed: {}", err.getMessage());
-                            return null;
-                        });
+                BackendService.INSTANCE.registerLocalPlayer(client.player);
+                if (config.pickupHud.enabled) PickupTracker.INSTANCE.initializeBaseline(client.player);
+                RealtimeClient.getInstance().connect(playerUuid);
             }
-            AbilityDatabase.INSTANCE.fetch();
-            BuffDatabase.getInstance().fetchAll();
+            if (config.cooldownHud.enabled) AbilityDatabase.INSTANCE.fetch();
+            if (config.buffHud.enabled) BuffDatabase.getInstance().fetchAll();
             TitleDatabase.getInstance().fetch();
-            AccessoryDatabase.getInstance().fetch();
+            TitleDatabase.getInstance().startActivePolling();
+            if (config.accessoryHud.enabled) AccessoryDatabase.getInstance().fetch();
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             RealtimeClient.getInstance().disconnect();
-            SupabaseService.INSTANCE.clearCache();
+            BackendService.INSTANCE.clearCache();
             CooldownTracker.INSTANCE.clear();
             BuffTracker.getInstance().clear();
             GuiEditManager.clear();
             TitleRegistry.getInstance().clear();
+            TitleDatabase.getInstance().stopActivePolling();
             AccessoryTracker.getInstance().clear();
+            PickupTracker.INSTANCE.clear();
+            SkillXpTracker.INSTANCE.clear();
         });
 
         LOGGER.info("[CDM] Go get them dyes!");

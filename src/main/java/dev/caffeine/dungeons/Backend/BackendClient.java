@@ -1,4 +1,4 @@
-package dev.caffeine.dungeons.supabase;
+package dev.caffeine.dungeons.Backend;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -11,42 +11,40 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-public final class SupabaseClient {
+public final class BackendClient {
 
     public static final Gson GSON = new GsonBuilder().create();
 
     private final String baseUrl;
-    private final String anonKey;
     private final HttpClient http;
 
-    public SupabaseClient(String baseUrl, String anonKey) {
+    public BackendClient(String baseUrl, String unusedKey) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        this.anonKey = anonKey;
         this.http    = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
     public CompletableFuture<String> get(String table, String query) {
-        String uri = baseUrl + "/rest/v1/" + table + (query.isBlank() ? "" : "?" + query);
+        String uri = baseUrl + "/rest/" + table + (query.isBlank() ? "" : "?" + query);
         HttpRequest req = baseBuilder(uri).GET().build();
 
         return http.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenApply(r -> {
                     if (r.statusCode() >= 400) {
-                        CaffeineDungeons.LOGGER.error("[Supabase] GET {} failed ({}): {}", table, r.statusCode(), r.body());
+                        CaffeineDungeons.LOGGER.error("[CDM] GET {} failed ({}): {}", table, r.statusCode(), r.body());
                         return null;
                     }
                     return r.body();
                 })
                 .exceptionally(e -> {
-                    CaffeineDungeons.LOGGER.error("[Supabase] GET {} error: {}", table, e.getMessage());
+                    CaffeineDungeons.LOGGER.error("[CDM] GET {} error: {}", table, e.getMessage());
                     return null;
                 });
     }
 
     public CompletableFuture<Void> upsert(String table, String json) {
-        String uri = baseUrl + "/rest/v1/" + table;
+        String uri = baseUrl + "/rest/" + table;
         HttpRequest req = baseBuilder(uri)
                 .header("Prefer", "resolution=merge-duplicates,return=minimal")
                 .POST(HttpRequest.BodyPublishers.ofString(json))
@@ -55,16 +53,16 @@ public final class SupabaseClient {
         return http.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenAccept(r -> {
                     if (r.statusCode() >= 400)
-                        CaffeineDungeons.LOGGER.error("[Supabase] UPSERT {} failed ({}): {}", table, r.statusCode(), r.body());
+                        CaffeineDungeons.LOGGER.error("[CDM] UPSERT {} failed ({}): {}", table, r.statusCode(), r.body());
                 })
                 .exceptionally(e -> {
-                    CaffeineDungeons.LOGGER.error("[Supabase] UPSERT {} error: {}", table, e.getMessage());
+                    CaffeineDungeons.LOGGER.error("[CDM] UPSERT {} error: {}", table, e.getMessage());
                     return null;
                 });
     }
 
     public CompletableFuture<Void> patch(String table, String query, String json) {
-        String uri = baseUrl + "/rest/v1/" + table + "?" + query;
+        String uri = baseUrl + "/rest/" + table + "?" + query;
         HttpRequest req = baseBuilder(uri)
                 .header("Prefer", "return=minimal")
                 .method("PATCH", HttpRequest.BodyPublishers.ofString(json))
@@ -73,10 +71,10 @@ public final class SupabaseClient {
         return http.sendAsync(req, HttpResponse.BodyHandlers.ofString())
                 .thenAccept(r -> {
                     if (r.statusCode() >= 400)
-                        CaffeineDungeons.LOGGER.error("[Supabase] PATCH {} failed ({}): {}", table, r.statusCode(), r.body());
+                        CaffeineDungeons.LOGGER.error("[CDM] PATCH {} failed ({}): {}", table, r.statusCode(), r.body());
                 })
                 .exceptionally(e -> {
-                    CaffeineDungeons.LOGGER.error("[Supabase] PATCH {} error: {}", table, e.getMessage());
+                    CaffeineDungeons.LOGGER.error("[CDM] PATCH {} error: {}", table, e.getMessage());
                     return null;
                 });
     }
@@ -84,8 +82,6 @@ public final class SupabaseClient {
     private HttpRequest.Builder baseBuilder(String uri) {
         return HttpRequest.newBuilder()
                 .uri(URI.create(uri))
-                .header("apikey",        anonKey)
-                .header("Authorization", "Bearer " + anonKey)
-                .header("Content-Type",  "application/json");
+                .header("Content-Type", "application/json");
     }
 }

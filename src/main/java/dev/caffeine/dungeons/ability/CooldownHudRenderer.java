@@ -29,7 +29,7 @@ public class CooldownHudRenderer {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
 
         // Resolve HUD position — defaults to top-left
-        HudPosition pos = config.cooldownHudPos;
+        HudPosition pos = config.cooldownHud.pos;
         pos.getX(MARGIN);
         pos.getY(MARGIN);
 
@@ -53,7 +53,7 @@ public class CooldownHudRenderer {
         matrices.translate(pos.x, pos.y);
         matrices.scale(pos.scale, pos.scale);
 
-        if (config.cooldownHudStyle == CaffeineConfig.CooldownHudStyle.TEXT) {
+        if (config.cooldownHud.style == CaffeineConfig.CooldownHudStyle.TEXT) {
             renderText(context, entries, tr);
         } else {
             renderPanels(context, entries, tr, now, rightSide);

@@ -13,19 +13,20 @@ public final class RarityHudRenderer {
 
     // Called once per hotbar slot, before the item is drawn
     public static void renderSlotIndicator(DrawContext context, int x, int y, ItemStack stack) {
+        if (!AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig().rarityIndicator.enabled) return;
         if (stack.isEmpty()) return;
 
         int color = RarityUtil.getRarityColor(stack);
         if (color == -1) return;
 
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        int argb = applyAlpha(color, config.rarityIndicatorAlpha / 100f);
+        int argb = applyAlpha(color, config.rarityIndicator.alpha / 100f);
 
         // x, y is the top-left of the 16x16 item render area
         int cx = x + 8;
         int cy = y + 8;
 
-        switch (config.rarityIndicatorStyle) {
+        switch (config.rarityIndicator.style) {
             case CIRCLE -> drawCircle(context, cx, cy, SHAPE_HALF_SIZE, argb);
             case SQUARE -> context.fill(
                     Math.round(cx - SHAPE_HALF_SIZE), Math.round(cy - SHAPE_HALF_SIZE),

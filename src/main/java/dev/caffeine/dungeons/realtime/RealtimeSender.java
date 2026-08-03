@@ -22,16 +22,14 @@ public class RealtimeSender {
 
     public static CompletableFuture<Optional<UUID>> resolveUuidByUsername(String username) {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        String base = config.dev.supabaseUrl.endsWith("/")
-                ? config.dev.supabaseUrl.substring(0, config.dev.supabaseUrl.length() - 1)
-                : config.dev.supabaseUrl;
+        String base = config.dev.backendUrl.endsWith("/")
+                ? config.dev.backendUrl.substring(0, config.dev.backendUrl.length() - 1)
+                : config.dev.backendUrl;
         String encoded = URLEncoder.encode(username, StandardCharsets.UTF_8);
-        String url = base + "/rest/v1/players?username=eq." + encoded + "&select=uuid&limit=1";
+        String url = base + "/rest/players?username=eq." + encoded + "&select=uuid&limit=1";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header("apikey", config.dev.supabaseAnonKey)
-                .header("Authorization", "Bearer " + config.dev.supabaseAnonKey)
                 .GET()
                 .build();
 
@@ -44,6 +42,6 @@ public class RealtimeSender {
     }
 
     public static void sendToPlayer(UUID targetUuid, String type, JsonObject data) {
-        RealtimeClient.getInstance().sendOnceTo("player:" + targetUuid, new RealtimeMessage(type, data));
+        RealtimeClient.getInstance().publish(targetUuid, type, data);
     }
 }

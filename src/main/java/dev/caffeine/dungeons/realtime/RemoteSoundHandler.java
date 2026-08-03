@@ -35,7 +35,7 @@ public class RemoteSoundHandler {
                     );
                     MinecraftClient.getInstance().getSoundManager().play(instance);
                 },
-                () -> System.err.println("[CaffeineDungeons] Unknown troll sound id: " + soundId)
+                () -> System.err.println("[CDM] Unknown troll sound id: " + soundId)
         );
     }
 }
