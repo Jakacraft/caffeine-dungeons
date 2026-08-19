@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "package": "dev.caffeine.dungeons.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ActionBarMixin",
+    "ChatListenerMixin",
+    "HandledScreenMixin",
+    "InGameHudMixin",
+    "PlayerEntityRendererMixin",
+    "ScreenMixin",
+    "TooltipBackgroundRendererMixin",
+    "VitalsBarMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
