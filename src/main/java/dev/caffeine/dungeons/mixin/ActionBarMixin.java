@@ -30,7 +30,9 @@ public class ActionBarMixin {
         if (config.skillXpHud.enabled && dev.caffeine.dungeons.skillxp.SkillXpTracker.INSTANCE.onActionBarMessage(plain)) {
             ci.cancel();
         }
-        if (config.vitalsHud.enabled && dev.caffeine.dungeons.vitals.VitalsTracker.INSTANCE.onActionBarMessage(plain)) {
+        boolean anyVitalsEnabled = config.vitalsHud.health.enabled || config.vitalsHud.mana.enabled
+                || config.vitalsHud.defense.enabled || config.vitalsHud.speed.enabled;
+        if (anyVitalsEnabled && dev.caffeine.dungeons.vitals.VitalsTracker.INSTANCE.onActionBarMessage(plain)) {
             ci.cancel();
         }
     }

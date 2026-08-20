@@ -11,9 +11,9 @@ public final class VitalsTracker {
 
     private static final long STALE_MS = 8000L;
 
-    private static final Pattern SEGMENT = Pattern.compile("(\\d+)(?:/(\\d+))?(.+?)\\s+(.+)");
+    private static final Pattern SEGMENT = Pattern.compile("(\\d+(?:\\.\\d+)?)(?:/(\\d+(?:\\.\\d+)?))?(.+?)\\s+(.+)");
 
-    private record Parsed(String label, String icon, int current, int max) {}
+    private record Parsed(String label, String icon, float current, float max) {}
 
     private final Map<String, VitalStat> stats = new LinkedHashMap<>();
     private long lastUpdateMs = 0L;
@@ -29,10 +29,14 @@ public final class VitalsTracker {
             if (segment.isEmpty()) continue;
 
             Matcher m = SEGMENT.matcher(segment);
-            if (!m.matches()) return false;
+            if (!m.matches()) {
+                dev.caffeine.dungeons.CaffeineDungeons.LOGGER.warn(
+                        "[CDM] Vitals segment failed to parse: [{}] (full line: [{}])", segment, plainText);
+                return false;
+            }
 
-            int current = parseInt(m.group(1));
-            int max = m.group(2) != null ? parseInt(m.group(2)) : current;
+            float current = parseFloat(m.group(1));
+            float max = m.group(2) != null ? parseFloat(m.group(2)) : current;
             String icon = m.group(3).trim();
             String label = m.group(4).trim();
             parsed.put(label.toLowerCase(), new Parsed(label, icon, current, max));
@@ -50,6 +54,7 @@ public final class VitalsTracker {
             }
         }
         lastUpdateMs = System.currentTimeMillis();
+        dev.caffeine.dungeons.CaffeineDungeons.LOGGER.debug("[CDM] Vitals parsed line [{}] -> {}", plainText, stats);
         return true;
     }
 
@@ -69,11 +74,11 @@ public final class VitalsTracker {
         return lastUpdateMs == 0L || nowMs - lastUpdateMs > STALE_MS;
     }
 
-    private int parseInt(String s) {
+    private float parseFloat(String s) {
         try {
-            return Integer.parseInt(s);
+            return Float.parseFloat(s);
         } catch (NumberFormatException e) {
-            return 0;
+            return 0f;
         }
     }
 

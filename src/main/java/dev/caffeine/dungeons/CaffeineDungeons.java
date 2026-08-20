@@ -132,7 +132,10 @@ public class CaffeineDungeons implements ClientModInitializer {
             if (config.buffHud.enabled) BuffTracker.getInstance().tick();
             if (config.pickupHud.enabled) PickupTracker.INSTANCE.tick(client.player);
             if (config.skillXpHud.enabled) SkillXpTracker.INSTANCE.tick();
-            if (config.vitalsHud.enabled) VitalsTracker.INSTANCE.tick();
+            if (config.vitalsHud.health.enabled || config.vitalsHud.mana.enabled
+                    || config.vitalsHud.defense.enabled || config.vitalsHud.speed.enabled) {
+                VitalsTracker.INSTANCE.tick();
+            }
         });
 
         HudRenderCallback.EVENT.register((context, tickCounter) -> {
@@ -141,7 +144,7 @@ public class CaffeineDungeons implements ClientModInitializer {
             if (config.buffHud.enabled) BuffHudRenderer.render(context);
             if (config.pickupHud.enabled) PickupHudRenderer.render(context);
             if (config.skillXpHud.enabled) SkillXpHudRenderer.render(context);
-            if (config.vitalsHud.enabled) VitalsHudRenderer.render(context);
+            VitalsHudRenderer.render(context);
         });
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {

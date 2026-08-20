@@ -1,51 +1,47 @@
 package dev.caffeine.dungeons.vitals;
 
 import dev.caffeine.dungeons.config.CaffeineConfig;
+import dev.caffeine.dungeons.hud.GuiEditManager;
+import dev.caffeine.dungeons.hud.HudPosition;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.screen.GameMenuScreen;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 
 public final class VitalsHudRenderer {
 
+    private static final float MINI_TEXT_SCALE = 0.75f;
+
     private static final int HOTBAR_HALF_W = 91;
     private static final int HOTBAR_H = 22;
-    private static final int HOTBAR_TOP_GAP = 2;
-    private static final int ROW_GAP = 3;
+    private static final int HOTBAR_TOP_GAP = 7;
+    private static final int ROW_GAP = 4;
 
-    private static final int MAIN_BAR_W = 84;
-    private static final int MAIN_BAR_H = 10;
+    private static final int MAIN_BAR_W = 86;
+    private static final int MAIN_BAR_H = 11;
     private static final int MAIN_RADIUS = MAIN_BAR_H / 2;
 
-    private static final int MINI_W = 40;
-    private static final int MINI_H = 9;
+    private static final int MINI_W = 46;
+    private static final int MINI_H = 10;
     private static final int MINI_RADIUS = MINI_H / 2;
 
-    private static final int BACKING_PAD = 2;
-
     private static final int OUTLINE_COLOR = 0xFF0B0B10;
-    private static final int BACKING_COLOR = 0x99101015;
     private static final int TRACK_TOP = 0xFF34343F;
     private static final int TRACK_BOTTOM = 0xFF1E1E26;
     private static final int TEXT_COLOR = 0xFFFFFFFF;
 
-    private static final int HEALTH_TOP = 0xFFFF7A6E;
-    private static final int HEALTH_BOTTOM = 0xFFC13A32;
-    private static final int MANA_TOP = 0xFF74C0FF;
-    private static final int MANA_BOTTOM = 0xFF3A7ECF;
-    private static final int DEFENSE_TOP = 0xFFB9C4D6;
-    private static final int DEFENSE_BOTTOM = 0xFF7A879C;
-    private static final int SPEED_TOP = 0xFFCBEB6B;
-    private static final int SPEED_BOTTOM = 0xFF8FB93A;
+    private static final int HEALTH_TOP = 0xFFFF8577;
+    private static final int HEALTH_BOTTOM = 0xFFC7392F;
+    private static final int MANA_TOP = 0xFF6FC3FF;
+    private static final int MANA_BOTTOM = 0xFF2E76C2;
 
     private VitalsHudRenderer() {}
 
     public static void render(DrawContext context) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.player == null || client.currentScreen != null) return;
-
-        CaffeineConfig config = me.shedaniel.autoconfig.AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        if (!config.vitalsHud.enabled) return;
+        if (client.player == null) return;
+        if (client.currentScreen != null && !(client.currentScreen instanceof GameMenuScreen)) return;
 
         VitalStat health = VitalsTracker.INSTANCE.getHealth();
         VitalStat mana = VitalsTracker.INSTANCE.getMana();
@@ -55,7 +51,7 @@ public final class VitalsHudRenderer {
         VitalStat defense = VitalsTracker.INSTANCE.get("defense");
         VitalStat speed = VitalsTracker.INSTANCE.get("speed");
 
-        boolean panelBacking = config.vitalsHud.style == CaffeineConfig.VitalsHudStyle.PANELS;
+        CaffeineConfig config = me.shedaniel.autoconfig.AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
 
         int screenW = client.getWindow().getScaledWidth();
         int screenH = client.getWindow().getScaledHeight();
@@ -70,61 +66,87 @@ public final class VitalsHudRenderer {
 
         TextRenderer tr = client.textRenderer;
 
-        drawMainBar(context, tr, health, HEALTH_TOP, HEALTH_BOTTOM, leftEdge, leftEdge + MAIN_BAR_W, mainTop, panelBacking);
-        drawMainBar(context, tr, mana, MANA_TOP, MANA_BOTTOM, rightEdge - MAIN_BAR_W, rightEdge, mainTop, panelBacking);
-
-        if (defense != null) {
-            drawMiniChip(context, tr, defense, DEFENSE_TOP, DEFENSE_BOTTOM, leftEdge, leftEdge + MINI_W, miniTop, panelBacking);
+        if (config.vitalsHud.health.enabled) {
+            renderMainBar(context, tr, "health", config.vitalsHud.health.pos, health,
+                    HEALTH_TOP, HEALTH_BOTTOM, leftEdge, mainTop);
         }
-        if (speed != null) {
-            drawMiniChip(context, tr, speed, SPEED_TOP, SPEED_BOTTOM, rightEdge - MINI_W, rightEdge, miniTop, panelBacking);
+        if (config.vitalsHud.mana.enabled) {
+            renderMainBar(context, tr, "mana", config.vitalsHud.mana.pos, mana,
+                    MANA_TOP, MANA_BOTTOM, rightEdge - MAIN_BAR_W, mainTop);
+        }
+        if (defense != null && config.vitalsHud.defense.enabled) {
+            renderMiniChip(context, tr, "defense", config.vitalsHud.defense.pos, defense, "DEF",
+                    leftEdge, miniTop);
+        }
+        if (speed != null && config.vitalsHud.speed.enabled) {
+            renderMiniChip(context, tr, "speed", config.vitalsHud.speed.pos, speed, "SPD",
+                    rightEdge - MINI_W, miniTop);
         }
     }
 
-    private static void drawMainBar(DrawContext context, TextRenderer tr, VitalStat stat, int fillTop, int fillBottom,
-                                    int left, int right, int top, boolean panelBacking) {
-        if (panelBacking) {
-            fillCapsule(context, left - BACKING_PAD, right + BACKING_PAD, top - BACKING_PAD, MAIN_BAR_H + BACKING_PAD * 2,
-                    MAIN_RADIUS + BACKING_PAD, true, true, BACKING_COLOR, BACKING_COLOR);
-        }
+    private static void renderMainBar(DrawContext context, TextRenderer tr, String label, HudPosition pos,
+                                      VitalStat stat, int fillTop, int fillBottom, int defaultLeft, int defaultTop) {
+        int baseX = pos.getX(defaultLeft);
+        int baseY = pos.getY(defaultTop);
+        GuiEditManager.register(label, pos, MAIN_BAR_W, MAIN_BAR_H);
 
-        fillCapsuleOutlined(context, left, right, top, MAIN_BAR_H, MAIN_RADIUS, true, true, TRACK_TOP, TRACK_BOTTOM);
+        var matrices = context.getMatrices();
+        matrices.pushMatrix();
+        matrices.translate(baseX, baseY);
+        matrices.scale(pos.scale, pos.scale);
+
+        fillCapsuleOutlined(context, 0, MAIN_BAR_W, 0, MAIN_BAR_H, MAIN_RADIUS, true, true, TRACK_TOP, TRACK_BOTTOM);
 
         float progress = Float.isNaN(stat.displayedProgress) ? stat.trueProgress() : stat.displayedProgress;
-        int innerW = (right - left) - 2;
+        int innerW = MAIN_BAR_W - 2;
         int fillW = Math.round(innerW * progress);
         if (fillW > 0) {
             boolean roundRight = fillW >= innerW;
-            fillCapsule(context, left + 1, left + 1 + fillW, top + 1, MAIN_BAR_H - 2,
-                    MAIN_RADIUS - 1, true, roundRight, fillTop, fillBottom);
+            fillCapsule(context, 1, 1 + fillW, 1, MAIN_BAR_H - 2, MAIN_RADIUS - 1,
+                    true, roundRight, fillTop, fillBottom, true);
         }
 
-        String text = stat.icon + " " + stat.current + "/" + stat.max;
+        String text = VitalStat.format(stat.current) + "/" + VitalStat.format(stat.max);
         int textW = tr.getWidth(text);
-        int textX = left + ((right - left) - textW) / 2;
-        int textY = top + (MAIN_BAR_H - tr.fontHeight) / 2;
+        int textX = (MAIN_BAR_W - textW) / 2;
+        int textY = (MAIN_BAR_H - tr.fontHeight) / 2 + 1;
         context.drawText(tr, Text.literal(text), textX, textY, TEXT_COLOR, true);
+
+        matrices.popMatrix();
     }
 
-    private static void drawMiniChip(DrawContext context, TextRenderer tr, VitalStat stat, int colorTop, int colorBottom,
-                                     int left, int right, int top, boolean panelBacking) {
-        if (panelBacking) {
-            fillCapsule(context, left - BACKING_PAD, right + BACKING_PAD, top - BACKING_PAD, MINI_H + BACKING_PAD * 2,
-                    MINI_RADIUS + BACKING_PAD, true, true, BACKING_COLOR, BACKING_COLOR);
-        }
+    private static void renderMiniChip(DrawContext context, TextRenderer tr, String label, HudPosition pos,
+                                       VitalStat stat, String abbrev, int defaultLeft, int defaultTop) {
+        int baseX = pos.getX(defaultLeft);
+        int baseY = pos.getY(defaultTop);
+        GuiEditManager.register(label, pos, MINI_W, MINI_H);
 
-        fillCapsuleOutlined(context, left, right, top, MINI_H, MINI_RADIUS, true, true, colorTop, colorBottom);
+        var matrices = context.getMatrices();
+        matrices.pushMatrix();
+        matrices.translate(baseX, baseY);
+        matrices.scale(pos.scale, pos.scale);
 
-        String text = stat.icon + " " + stat.current;
+        fillCapsuleOutlined(context, 0, MINI_W, 0, MINI_H, MINI_RADIUS, true, true, TRACK_TOP, TRACK_BOTTOM);
+
+        String text = abbrev + " " + VitalStat.format(stat.current);
         int textW = tr.getWidth(text);
-        int textX = left + ((right - left) - textW) / 2;
-        int textY = top + (MINI_H - tr.fontHeight) / 2;
-        context.drawText(tr, Text.literal(text), textX, textY, TEXT_COLOR, true);
+        int scaledTextW = Math.round(textW * MINI_TEXT_SCALE);
+        int textX = (MINI_W - scaledTextW) / 2;
+        int scaledTextH = Math.round(tr.fontHeight * MINI_TEXT_SCALE);
+        int textY = (MINI_H - scaledTextH) / 2 + 1;
+
+        matrices.pushMatrix();
+        matrices.translate(textX, textY);
+        matrices.scale(MINI_TEXT_SCALE, MINI_TEXT_SCALE);
+        context.drawText(tr, Text.literal(text), 0, 0, TEXT_COLOR, true);
+        matrices.popMatrix();
+
+        matrices.popMatrix();
     }
 
     private static void fillCapsuleOutlined(DrawContext context, int left, int right, int top, int height, int radius,
                                             boolean roundLeft, boolean roundRight, int colorTop, int colorBottom) {
-        fillCapsule(context, left, right, top, height, radius, roundLeft, roundRight, OUTLINE_COLOR, OUTLINE_COLOR);
+        fillCapsule(context, left, right, top, height, radius, roundLeft, roundRight, OUTLINE_COLOR, OUTLINE_COLOR, false);
 
         int innerLeft = roundLeft ? left + 1 : left;
         int innerRight = roundRight ? right - 1 : right;
@@ -132,12 +154,12 @@ public final class VitalsHudRenderer {
         int innerHeight = height - 2;
         if (innerRight > innerLeft && innerHeight > 0) {
             fillCapsule(context, innerLeft, innerRight, innerTop, innerHeight,
-                    Math.max(0, radius - 1), roundLeft, roundRight, colorTop, colorBottom);
+                    Math.max(0, radius - 1), roundLeft, roundRight, colorTop, colorBottom, false);
         }
     }
 
     private static void fillCapsule(DrawContext context, int left, int right, int top, int height, int radius,
-                                    boolean roundLeft, boolean roundRight, int colorTop, int colorBottom) {
+                                    boolean roundLeft, boolean roundRight, int colorTop, int colorBottom, boolean glossy) {
         radius = Math.min(radius, height / 2);
         for (int row = 0; row < height; row++) {
             int distFromEdge = Math.min(row, height - 1 - row);
@@ -150,7 +172,11 @@ public final class VitalsHudRenderer {
             int rowRight = roundRight ? right - inset : right;
             if (rowRight > rowLeft) {
                 float t = height <= 1 ? 0f : row / (float) (height - 1);
-                context.fill(rowLeft, top + row, rowRight, top + row + 1, lerpColor(colorTop, colorBottom, t));
+                int color = lerpColor(colorTop, colorBottom, t);
+                if (glossy && row == 0) {
+                    color = lerpColor(color, 0xFFFFFFFF, 0.3f);
+                }
+                context.fill(rowLeft, top + row, rowRight, top + row + 1, color);
             }
         }
     }

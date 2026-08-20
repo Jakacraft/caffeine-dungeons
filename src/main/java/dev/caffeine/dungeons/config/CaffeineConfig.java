@@ -38,7 +38,6 @@ public class CaffeineConfig implements ConfigData {
     public enum AccessoryHudStyle { PANELS, TEXT }
     public enum PickupHudStyle { PANELS, TEXT }
     public enum SkillXpHudStyle { PANELS, TEXT }
-    public enum VitalsHudStyle { PANELS, TEXT }
 
     public static class RarityIndicatorSettings implements ConfigData {
         public boolean enabled = true;
@@ -102,10 +101,24 @@ public class CaffeineConfig implements ConfigData {
     }
 
     public static class VitalsHudSettings implements ConfigData {
+        @ConfigEntry.Gui.CollapsibleObject
+        public VitalBarSettings health = new VitalBarSettings();
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public VitalBarSettings mana = new VitalBarSettings();
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public VitalBarSettings defense = new VitalBarSettings();
+
+        @ConfigEntry.Gui.CollapsibleObject
+        public VitalBarSettings speed = new VitalBarSettings();
+    }
+
+    public static class VitalBarSettings implements ConfigData {
         public boolean enabled = true;
 
-        @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.BUTTON)
-        public VitalsHudStyle style = VitalsHudStyle.PANELS;
+        @ConfigEntry.Gui.Excluded
+        public HudPosition pos = new HudPosition();
     }
 
     public static class DevSettings implements ConfigData {

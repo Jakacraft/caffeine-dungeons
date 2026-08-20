@@ -16,7 +16,7 @@ public class VitalsBarMixin {
     @Inject(method = "renderStatusBars", at = @At("HEAD"), cancellable = true)
     private void onRenderStatusBars(DrawContext context, CallbackInfo ci) {
         CaffeineConfig config = AutoConfig.getConfigHolder(CaffeineConfig.class).getConfig();
-        if (!config.vitalsHud.enabled) return;
+        if (!config.vitalsHud.health.enabled || !config.vitalsHud.mana.enabled) return;
         if (VitalsTracker.INSTANCE.getHealth() == null) return;
         if (VitalsTracker.INSTANCE.getMana() == null) return;
         if (VitalsTracker.INSTANCE.isStale(System.currentTimeMillis())) return;
