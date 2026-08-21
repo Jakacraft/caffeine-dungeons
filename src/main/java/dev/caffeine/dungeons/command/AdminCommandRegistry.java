@@ -25,16 +25,18 @@ public class AdminCommandRegistry {
                         ClientCommandManager.literal("cdm")
                                 .then(ClientCommandManager.literal("admin")
 
-                                        // /cdm admin buff <text>
+                                        // /cdm admin buff set <text>
                                         .then(ClientCommandManager.literal("buff")
-                                                .then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
-                                                        .executes(ctx -> {
-                                                            if (!checkAdmin()) return 0;
-                                                            String text = StringArgumentType.getString(ctx, "text");
-                                                            BuffDatabase.getInstance().pushServerEvent(text);
-                                                            feedback("§aServer event set: §f" + text);
-                                                            return 1;
-                                                        })
+                                                .then(ClientCommandManager.literal("set")
+                                                        .then(ClientCommandManager.argument("text", StringArgumentType.greedyString())
+                                                                .executes(ctx -> {
+                                                                    if (!checkAdmin()) return 0;
+                                                                    String text = StringArgumentType.getString(ctx, "text");
+                                                                    BuffDatabase.getInstance().pushServerEvent(text);
+                                                                    feedback("§aServer event set: §f" + text);
+                                                                    return 1;
+                                                                })
+                                                        )
                                                 )
                                                 // /cdm admin buff clear
                                                 .then(ClientCommandManager.literal("clear")
