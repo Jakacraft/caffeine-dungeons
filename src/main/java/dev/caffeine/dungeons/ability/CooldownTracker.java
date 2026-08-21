@@ -19,6 +19,12 @@ public class CooldownTracker {
         // Refresh if already on cooldown
         entries.removeIf(e -> e.abilityName.equalsIgnoreCase(abilityName));
         entries.add(new CooldownEntry(abilityName, color, durationMs));
+
+        if (data != null && data.hasBuff()) {
+            long buffDurationMs = data.getBuffDurationSeconds() * 1000L;
+            dev.caffeine.dungeons.buff.BuffTracker.getInstance().addTempBuff(
+                    dev.caffeine.dungeons.buff.BuffEntry.timed(data.buffLabel, data.getBuffColorHex(), buffDurationMs));
+        }
     }
 
     public void tick() {

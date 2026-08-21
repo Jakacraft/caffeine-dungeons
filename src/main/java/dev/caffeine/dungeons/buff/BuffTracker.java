@@ -21,7 +21,10 @@ public class BuffTracker {
     public void setTempEvent(BuffEntry e)         { this.tempEvent  = e; }
     public void clearTempEvent()                  { this.tempEvent  = null; }
     public void setBoosters(List<BuffEntry> list) { boosters.clear(); boosters.addAll(list); }
-    public void addTempBuff(BuffEntry e)          { tempBuffs.add(e); }
+    public void addTempBuff(BuffEntry e) {
+        tempBuffs.removeIf(existing -> existing.label().equalsIgnoreCase(e.label()));
+        tempBuffs.add(e);
+    }
 
     // --- Getters ---
     public BuffEntry          getDailyEvent() { return dailyEvent; }
