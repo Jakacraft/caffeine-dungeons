@@ -9,6 +9,9 @@
  - Buffs Hud Display
  - Custom Titles
  - Item Screenshot
+ - Pickup Notfier
+ - Vitals Bars
+ - Skill XP Bars
 
 ## Versions & Dependancies
 
