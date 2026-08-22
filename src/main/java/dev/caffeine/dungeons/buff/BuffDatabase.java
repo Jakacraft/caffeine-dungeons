@@ -41,26 +41,22 @@ public class BuffDatabase {
         if (!hasBackend(cfg)) return;
 
         // 1. Deactivate all current active events
-        patch(cfg, "/rest/server_events?active=eq.true",
+        patch(cfg, "/rest/v1/server_events?active=eq.true",
                 jsonOf("active", false))
-                .thenAccept(deactivateResponse -> {
-                    if (deactivateResponse.statusCode() != 200 && deactivateResponse.statusCode() != 204) {
-                        LOGGER.warn("Deactivate old server events failed: HTTP {} — {}",
-                                deactivateResponse.statusCode(), deactivateResponse.body());
-                    }
+                .thenRun(() -> {
                     // 2. Insert new event
                     JsonObject body = new JsonObject();
                     body.addProperty("text",   text);
                     body.addProperty("color",  "#FFAA00");
                     body.addProperty("active", true);
-                    post(cfg, "/rest/server_events", body)
+                    post(cfg, "/rest/v1/server_events", body)
                             .thenAccept(r -> {
                                 if (r.statusCode() == 201) {
                                     BuffTracker.getInstance().setTempEvent(
                                             BuffEntry.permanent(text, "#FFAA00"));
                                     LOGGER.info("Server event set: {}", text);
                                 } else {
-                                    LOGGER.warn("Insert server event failed: HTTP {} — {}", r.statusCode(), r.body());
+                                    LOGGER.warn("Insert server event failed: HTTP {}", r.statusCode());
                                 }
                             });
                 });
@@ -70,13 +66,13 @@ public class BuffDatabase {
     public void clearServerEvent() {
         CaffeineConfig cfg = cfg();
         if (!hasBackend(cfg)) return;
-        patch(cfg, "/rest/server_events?active=eq.true", jsonOf("active", false))
+        patch(cfg, "/rest/v1/server_events?active=eq.true", jsonOf("active", false))
                 .thenAccept(r -> {
                     if (r.statusCode() == 200 || r.statusCode() == 204) {
                         BuffTracker.getInstance().clearTempEvent();
                         LOGGER.info("Server event cleared.");
                     } else {
-                        LOGGER.warn("Clear server event failed: HTTP {} — {}", r.statusCode(), r.body());
+                        LOGGER.warn("Clear server event failed: HTTP {}", r.statusCode());
                     }
                 });
     }
@@ -115,14 +111,19 @@ public class BuffDatabase {
                 }
                  */
 
-                // Boosters
+                // Boosters — master list of possible boosters. Activity (ACTIVE/INACTIVE) comes
+                // separately from BoosterTablistReader, not from this file.
                 if (root.has("boosters")) {
-                    List<BuffEntry> list = new ArrayList<>();
+                    List<BoosterDefinition> list = new ArrayList<>();
                     for (JsonElement el : root.getAsJsonArray("boosters")) {
                         JsonObject b = el.getAsJsonObject();
-                        list.add(BuffEntry.permanent(
-                                b.get("label").getAsString(),
-                                colorOr(b, "#FFAA00")
+                        String label = b.get("label").getAsString();
+                        String matchName = b.has("tablistName")
+                                ? b.get("tablistName").getAsString()
+                                : stripBoosterSuffix(label);
+                        list.add(new BoosterDefinition(
+                                matchName,
+                                BuffEntry.permanent(label, colorOr(b, "#FFAA00"))
                         ));
                     }
                     tracker.setBoosters(list);
@@ -137,10 +138,10 @@ public class BuffDatabase {
         CaffeineConfig cfg = cfg();
         if (!hasBackend(cfg)) return;
 
-        get(cfg, "/rest/server_events?active=eq.true&order=created_at.desc&limit=1")
+        get(cfg, "/rest/v1/server_events?active=eq.true&order=created_at.desc&limit=1")
                 .thenAccept(r -> {
                     if (r.statusCode() != 200) {
-                        LOGGER.warn("server_events fetch failed: HTTP {} — {}", r.statusCode(), r.body());
+                        LOGGER.warn("server_events fetch failed: HTTP {}", r.statusCode());
                         return;
                     }
                     try {
@@ -168,6 +169,8 @@ public class BuffDatabase {
         return http.sendAsync(
                 HttpRequest.newBuilder()
                         .uri(URI.create(cfg.dev.backendUrl + path))
+                        .header("apikey",        cfg.dev.backendAdminKey)
+                        .header("Authorization", "Bearer " + cfg.dev.backendAdminKey)
                         .header("Accept",        "application/json")
                         .GET().build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -178,6 +181,8 @@ public class BuffDatabase {
         return http.sendAsync(
                 HttpRequest.newBuilder()
                         .uri(URI.create(cfg.dev.backendUrl + path))
+                        .header("apikey",         cfg.dev.backendAdminKey)
+                        .header("Authorization",  "Bearer " + cfg.dev.backendAdminKey)
                         .header("Content-Type",   "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(body.toString())).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -188,6 +193,8 @@ public class BuffDatabase {
         return http.sendAsync(
                 HttpRequest.newBuilder()
                         .uri(URI.create(cfg.dev.backendUrl + path))
+                        .header("apikey",         cfg.dev.backendAdminKey)
+                        .header("Authorization",  "Bearer " + cfg.dev.backendAdminKey)
                         .header("Content-Type",   "application/json")
                         .method("PATCH", HttpRequest.BodyPublishers.ofString(body.toString())).build(),
                 HttpResponse.BodyHandlers.ofString());
@@ -213,5 +220,13 @@ public class BuffDatabase {
 
     private static String colorOr(JsonObject obj, String fallback) {
         return obj.has("color") ? obj.get("color").getAsString() : fallback;
+    }
+
+    private static String stripBoosterSuffix(String label) {
+        String suffix = " Booster";
+        if (label.regionMatches(true, label.length() - suffix.length(), suffix, 0, suffix.length())) {
+            return label.substring(0, label.length() - suffix.length()).trim();
+        }
+        return label;
     }
 }

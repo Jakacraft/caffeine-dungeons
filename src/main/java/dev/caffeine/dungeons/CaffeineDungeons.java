@@ -5,6 +5,7 @@ import dev.caffeine.dungeons.ability.CooldownHudRenderer;
 import dev.caffeine.dungeons.ability.CooldownTracker;
 import dev.caffeine.dungeons.accessory.AccessoryDatabase;
 import dev.caffeine.dungeons.accessory.AccessoryTracker;
+import dev.caffeine.dungeons.buff.BoosterTablistReader;
 import dev.caffeine.dungeons.buff.BuffDatabase;
 import dev.caffeine.dungeons.buff.BuffHudRenderer;
 import dev.caffeine.dungeons.buff.BuffTracker;
@@ -129,7 +130,10 @@ public class CaffeineDungeons implements ClientModInitializer {
             }
 
             if (config.cooldownHud.enabled) CooldownTracker.INSTANCE.tick();
-            if (config.buffHud.enabled) BuffTracker.getInstance().tick();
+            if (config.buffHud.enabled) {
+                BuffTracker.getInstance().tick();
+                BoosterTablistReader.tick();
+            }
             if (config.pickupHud.enabled) PickupTracker.INSTANCE.tick(client.player);
             if (config.skillXpHud.enabled) SkillXpTracker.INSTANCE.tick();
             if (config.vitalsHud.health.enabled || config.vitalsHud.mana.enabled
